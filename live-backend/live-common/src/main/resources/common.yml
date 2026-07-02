@@ -1,0 +1,67 @@
+# 公共配置文件（Nacos共享配置）
+# 所有服务都会加载此配置
+
+spring:
+  # Redis公共配置
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    password: 
+    database: 0
+    timeout: 3000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms
+  
+  # MongoDB公共配置
+  mongodb:
+    host: 127.0.0.1
+    port: 27017
+    database: live
+    username: 
+    password: 
+  
+  # Kafka公共配置
+  kafka:
+    bootstrap-servers: 127.0.0.1:9092
+    consumer:
+      group-id: live-consumer
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+  
+  # MinIO公共配置
+  minio:
+    endpoint: http://127.0.0.1:9000
+    accessKey: minioadmin
+    secretKey: minioadmin
+    bucket-name: live-files
+
+# JWT配置
+jwt:
+  secret: livestream-platform-secret-key-must-be-at-least-256-bits-long
+  expiration: 604800000  # 7天（毫秒）
+
+# 文件上传配置
+file:
+  upload:
+    max-size: 104857600  # 100MB
+    allowed-types: mp4,avi,rmvb,mov,flv,png,jpg,jpeg,gif
+
+# 系统配置
+system:
+  # 弹幕配置
+  danmaku:
+    frequency-limit: 5        # 10秒内最多发送条数
+    frequency-window: 10      # 频率限制时间窗口（秒）
+  
+  # 直播配置
+  live:
+    max-concurrent-viewers: 100000  # 最大并发观看人数
+    heartbeat-interval: 30         # 心跳间隔（秒）

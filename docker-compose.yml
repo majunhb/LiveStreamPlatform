@@ -1,0 +1,276 @@
+# ============================================================
+# 直播平台基础设施 - Docker Compose 配置文件
+# 包含 MySQL、Redis、MongoDB、Nacos、Zookeeper、Kafka、MinIO、SRS 等服务
+# 使用方法: docker-compose up -d
+# ============================================================
+
+version: '3.8'
+
+# 直播平台自定义网络
+networks:
+  livestream-net:
+    driver: bridge
+    name: livestream-network
+
+# 服务配置
+services:
+  # ============================================================
+  # MySQL 8.0 数据库服务
+  # ============================================================
+  mysql:
+    image: mysql:8.0
+    container_name: livestream-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root123456
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - mysql-data:/var/lib/mysql
+    networks:
+      - livestream-net
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot123456"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  # ============================================================
+  # Redis 7 缓存服务
+  # ============================================================
+  redis:
+    image: redis:7-alpine
+    container_name: livestream-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - livestream-net
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================
+  # MongoDB 7 数据库服务（存储弹幕等文档数据）
+  # ============================================================
+  mongo:
+    image: mongo:7
+    container_name: livestream-mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - livestream-net
+    environment:
+      MONGO_INITDB_DATABASE: live_message
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ============================================================
+  # Nacos 2.3 配置中心与服务发现
+  # ============================================================
+  nacos:
+    image: nacos/nacos:v2.3.0
+    container_name: livestream-nacos
+    restart: always
+    environment:
+      MODE: standalone
+      SPRING_DATASOURCE_PLATFORM: mysql
+      MYSQL_SERVICE_HOST: mysql
+      MYSQL_SERVICE_PORT: 3306
+      MYSQL_SERVICE_DB_NAME: live_nacos
+      MYSQL_SERVICE_USER: root
+      MYSQL_SERVICE_PASSWORD: root123456
+      NACOS_AUTH_ENABLE: false
+      JVM_XMS: 512m
+      JVM_XMX: 512m
+    ports:
+      - "8848:8848"   # 主端口
+      - "9848:9848"   # gRPC 通信端口
+      - "9849:9849"   # gRPC 端口用于服务注册
+    volumes:
+      - nacos-data:/home/nacos/data
+      - nacos-logs:/home/nacos/logs
+    networks:
+      - livestream-net
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  # ============================================================
+  # ZooKeeper 分布式协调服务（Kafka 依赖）
+  # ============================================================
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: livestream-zookeeper
+    restart: always
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_INIT_LIMIT: 5
+      ZOOKEEPER_SYNC_LIMIT: 2
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-logs:/var/lib/zookeeper/log
+    networks:
+      - livestream-net
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo ruok | nc localhost 2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================
+  # Kafka 3.6 消息队列服务
+  # ============================================================
+  kafka:
+    image: bitnami/kafka:3.6
+    container_name: livestream-kafka
+    restart: always
+    ports:
+      - "9092:9092"   # Kafka Broker 端口
+    environment:
+      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CFG_BROKER_ID: 1
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,PLAINTEXT_HOST://:29092
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT_HOST
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_CFG_NUM_PARTITIONS: 3
+      KAFKA_CFG_DEFAULT_REPLICATION_FACTOR: 1
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+      BITNAMI_DEBUG: "false"
+    volumes:
+      - kafka-data:/bitnami/kafka
+    networks:
+      - livestream-net
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "kafka-topics.sh", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ============================================================
+  # MinIO 对象存储服务（文件存储）
+  # ============================================================
+  minio:
+    image: minio/minio:latest
+    container_name: livestream-minio
+    restart: always
+    ports:
+      - "9000:9000"   # API 端口
+      - "9001:9001"   # Console 管理端口
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_DEFAULT_BUCKETS: livestream-media,live-covers,short-videos
+    volumes:
+      - minio-data:/data
+    networks:
+      - livestream-net
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ============================================================
+  # SRS 5 流媒体服务器（RTMP/HTTP-FLV/WebRTC）
+  # ============================================================
+  srs:
+    image: ossrs/srs:5
+    container_name: livestream-srs
+    restart: always
+    ports:
+      - "1935:1935"   # RTMP 推流端口
+      - "8080:8080"   # HTTP-FLV 拉流端口
+      - "1985:1985"   # HTTP API 端口
+      - "8000:8000"   # WebRTC 端口
+      - "500:500/udp" # WebRTC DTLS
+    volumes:
+      - ./docker/srs/srs.conf:/usr/local/srs/conf/srs.conf:ro
+      - srs-dvr:/usr/local/srs/dvr
+      - srs-objs:/usr/local/srs/objs
+    networks:
+      - livestream-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1985/api/v1/versions"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+# ============================================================
+# 数据卷声明（持久化存储）
+# ============================================================
+volumes:
+  # MySQL 数据卷
+  mysql-data:
+    name: livestream-mysql-data
+  
+  # Redis 数据卷
+  redis-data:
+    name: livestream-redis-data
+  
+  # MongoDB 数据卷
+  mongo-data:
+    name: livestream-mongo-data
+  
+  # Nacos 数据卷
+  nacos-data:
+    name: livestream-nacos-data
+  nacos-logs:
+    name: livestream-nacos-logs
+  
+  # ZooKeeper 数据卷
+  zookeeper-data:
+    name: livestream-zookeeper-data
+  zookeeper-logs:
+    name: livestream-zookeeper-logs
+  
+  # Kafka 数据卷
+  kafka-data:
+    name: livestream-kafka-data
+  
+  # MinIO 数据卷
+  minio-data:
+    name: livestream-minio-data
+  
+  # SRS 数据卷
+  srs-dvr:
+    name: livestream-srs-dvr
+  srs-objs:
+    name: livestream-srs-objs
