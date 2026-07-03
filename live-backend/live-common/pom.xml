@@ -67,7 +67,6 @@
             <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
         </dependency>
     </dependencies>
-</project>
 
     <build>
         <plugins>
@@ -88,3 +87,4 @@
             </plugin>
         </plugins>
     </build>
+</project>
