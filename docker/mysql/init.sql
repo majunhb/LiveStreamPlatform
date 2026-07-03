@@ -27,6 +27,7 @@ CREATE TABLE `t_user` (
     `status` TINYINT DEFAULT 1 COMMENT '状态: 1-正常, 0-禁用',
     `real_name` VARCHAR(64) DEFAULT NULL COMMENT '真实姓名',
     `id_card` VARCHAR(20) DEFAULT NULL COMMENT '身份证号',
+    `role` VARCHAR(32) DEFAULT 'USER' COMMENT '用户角色: USER-普通用户, ADMIN-管理员',
     `created_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),

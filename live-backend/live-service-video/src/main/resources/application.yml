@@ -8,31 +8,30 @@ spring:
   # MySQL配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:3306/live_video?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: root
-    password: root123456
+    url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/live_video?useUnicode=true&characterEncoding=utf8&useSSL=${DB_USE_SSL:false}&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
   
   # Redis配置
   data:
     redis:
-      host: 127.0.0.1
-      port: 6379
-      password: 
-      database: 0
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DB:0}
       timeout: 3000ms
   
   # MongoDB配置
-  data:
     mongodb:
-      host: 127.0.0.1
-      port: 27017
-      database: live_video
-      username: 
-      password: 
+      host: ${MONGO_HOST:127.0.0.1}
+      port: ${MONGO_PORT:27017}
+      database: ${MONGO_DB:live_video}
+      username: ${MONGO_USERNAME:}
+      password: ${MONGO_PASSWORD:}
   
   # Kafka配置
   kafka:
-    bootstrap-servers: 127.0.0.1:9092
+    bootstrap-servers: ${KAFKA_SERVERS:127.0.0.1:9092}
     consumer:
       group-id: video-consumer-group
       auto-offset-reset: earliest
@@ -42,22 +41,22 @@ spring:
   
   # MinIO配置
   minio:
-    endpoint: http://127.0.0.1:9000
-    accessKey: minioadmin
-    secretKey: minioadmin
-    bucket-name: live-videos
+    endpoint: ${MINIO_ENDPOINT:http://127.0.0.1:9000}
+    accessKey: ${MINIO_ACCESS_KEY:}
+    secretKey: ${MINIO_SECRET_KEY:}
+    bucket-name: ${MINIO_BUCKET:live-videos}
   
   # Nacos配置
   cloud:
     nacos:
-      username: nacos
-      password: nacos
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:}
       discovery:
-        server-addr: 127.0.0.1:8848
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
         namespace: ${NACOS_NAMESPACE:public}
         group: ${NACOS_GROUP:DEFAULT_GROUP}
       config:
-        server-addr: 127.0.0.1:8848
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
         namespace: ${NACOS_NAMESPACE:public}
         group: ${NACOS_GROUP:DEFAULT_GROUP}
         file-extension: yml

@@ -48,6 +48,9 @@ public class User implements Serializable {
     /** 用户类型：1-普通用户，2-主播，3-管理员 */
     private Integer userType;
     
+    /** 用户角色：USER-普通用户，ADMIN-管理员 */
+    private String role;
+    
     /** 金币余额 */
     private Long coinBalance;
     

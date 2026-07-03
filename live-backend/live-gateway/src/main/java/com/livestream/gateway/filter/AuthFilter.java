@@ -24,7 +24,7 @@ import java.util.List;
 
 /**
  * JWT鉴权过滤器
- * 对需要认证的请求进行Token校验
+ * 对需要认证的请求进行Token校验，并对管理后台路径进行角色权限校验
  */
 @Slf4j
 @Component
@@ -47,6 +47,11 @@ public class AuthFilter implements GlobalFilter, Ordered {
             "/favicon.ico",
             "/static/**",
             "/actuator/**"
+    );
+
+    /** 管理后台路径模式（需要ADMIN角色） */
+    private static final List<String> ADMIN_PATH_PATTERNS = Arrays.asList(
+            "/admin/**"
     );
 
     /** 路径匹配器 */
@@ -78,14 +83,25 @@ public class AuthFilter implements GlobalFilter, Ordered {
             Claims claims = JwtUtil.parseToken(token);
             Long userId = claims.get("userId", Long.class);
             String username = claims.getSubject();
+            String role = claims.get("role", String.class);
+            
+            // 管理后台路径需要ADMIN角色校验
+            if (isAdminPath(path)) {
+                if (!"ADMIN".equals(role)) {
+                    log.warn("用户 {} 尝试访问管理后台路径 {}，但角色为 {}，拒绝访问", username, path, role);
+                    return forbidden(exchange.getResponse(), ResultCode.FORBIDDEN.getCode(), "无权限访问管理后台");
+                }
+                log.debug("管理员 {} 访问管理后台路径: {}", username, path);
+            }
             
             // 将用户信息传递给下游服务
             ServerHttpRequest modifiedRequest = request.mutate()
                     .header("X-User-Id", String.valueOf(userId))
                     .header("X-Username", username)
+                    .header("X-User-Role", role != null ? role : "USER")
                     .build();
             
-            log.debug("用户 {} 认证通过，userId: {}", username, userId);
+            log.debug("用户 {} 认证通过，userId: {}, role: {}", username, userId, role);
             return chain.filter(exchange.mutate().request(modifiedRequest).build());
             
         } catch (Exception e) {
@@ -103,6 +119,13 @@ public class AuthFilter implements GlobalFilter, Ordered {
      */
     private boolean isWhitePath(String path) {
         return WHITE_LIST.stream().anyMatch(pattern -> pathMatcher.match(pattern, path));
+    }
+
+    /**
+     * 判断路径是否为管理后台路径
+     */
+    private boolean isAdminPath(String path) {
+        return ADMIN_PATH_PATTERNS.stream().anyMatch(pattern -> pathMatcher.match(pattern, path));
     }
 
     /**
@@ -128,10 +151,24 @@ public class AuthFilter implements GlobalFilter, Ordered {
     }
 
     /**
-     * 返回未授权响应
+     * 返回未授权响应（401）
      */
     private Mono<Void> unauthorized(ServerHttpResponse response, int code, String message) {
         response.setStatusCode(HttpStatus.UNAUTHORIZED);
+        response.getHeaders().add("Content-Type", "application/json;charset=UTF-8");
+        
+        R<Void> result = R.fail(code, message);
+        byte[] bytes = result.toString().getBytes(StandardCharsets.UTF_8);
+        DataBuffer buffer = response.bufferFactory().wrap(bytes);
+        
+        return response.writeWith(Mono.just(buffer));
+    }
+
+    /**
+     * 返回禁止访问响应（403）
+     */
+    private Mono<Void> forbidden(ServerHttpResponse response, int code, String message) {
+        response.setStatusCode(HttpStatus.FORBIDDEN);
         response.getHeaders().add("Content-Type", "application/json;charset=UTF-8");
         
         R<Void> result = R.fail(code, message);

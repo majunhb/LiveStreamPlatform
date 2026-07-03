@@ -22,7 +22,7 @@ services:
     container_name: livestream-mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root123456
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请设置MYSQL_ROOT_PASSWORD环境变量}
       TZ: Asia/Shanghai
     ports:
       - "3306:3306"
@@ -36,7 +36,7 @@ services:
       - --collation-server=utf8mb4_unicode_ci
       - --default-authentication-plugin=mysql_native_password
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot123456"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:?请设置MYSQL_ROOT_PASSWORD环境变量}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -97,8 +97,8 @@ services:
       MYSQL_SERVICE_HOST: mysql
       MYSQL_SERVICE_PORT: 3306
       MYSQL_SERVICE_DB_NAME: live_nacos
-      MYSQL_SERVICE_USER: root
-      MYSQL_SERVICE_PASSWORD: root123456
+      MYSQL_SERVICE_USER: ${MYSQL_USER:-root}
+      MYSQL_SERVICE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请设置MYSQL_ROOT_PASSWORD环境变量}
       NACOS_AUTH_ENABLE: false
       JVM_XMS: 512m
       JVM_XMX: 512m
@@ -192,8 +192,8 @@ services:
       - "9000:9000"   # API 端口
       - "9001:9001"   # Console 管理端口
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?请设置MINIO_ACCESS_KEY环境变量}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?请设置MINIO_SECRET_KEY环境变量}
       MINIO_DEFAULT_BUCKETS: livestream-media,live-covers,short-videos
     volumes:
       - minio-data:/data

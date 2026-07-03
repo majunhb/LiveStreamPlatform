@@ -4,10 +4,10 @@
 spring:
   # Redis公共配置
   redis:
-    host: 127.0.0.1
-    port: 6379
-    password: 
-    database: 0
+    host: ${REDIS_HOST:127.0.0.1}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: ${REDIS_DB:0}
     timeout: 3000ms
     lettuce:
       pool:
@@ -18,15 +18,15 @@ spring:
   
   # MongoDB公共配置
   mongodb:
-    host: 127.0.0.1
-    port: 27017
-    database: live
-    username: 
-    password: 
+    host: ${MONGO_HOST:127.0.0.1}
+    port: ${MONGO_PORT:27017}
+    database: ${MONGO_DB:live}
+    username: ${MONGO_USERNAME:}
+    password: ${MONGO_PASSWORD:}
   
   # Kafka公共配置
   kafka:
-    bootstrap-servers: 127.0.0.1:9092
+    bootstrap-servers: ${KAFKA_SERVERS:127.0.0.1:9092}
     consumer:
       group-id: live-consumer
       auto-offset-reset: earliest
@@ -38,15 +38,15 @@ spring:
   
   # MinIO公共配置
   minio:
-    endpoint: http://127.0.0.1:9000
-    accessKey: minioadmin
-    secretKey: minioadmin
-    bucket-name: live-files
+    endpoint: ${MINIO_ENDPOINT:http://127.0.0.1:9000}
+    accessKey: ${MINIO_ACCESS_KEY:}
+    secretKey: ${MINIO_SECRET_KEY:}
+    bucket-name: ${MINIO_BUCKET:live-files}
 
 # JWT配置
 jwt:
-  secret: livestream-platform-secret-key-must-be-at-least-256-bits-long
-  expiration: 604800000  # 7天（毫秒）
+  secret: ${JWT_SECRET:}
+  expiration: ${JWT_EXPIRATION:604800000}  # 默认7天（毫秒）
 
 # 文件上传配置
 file:

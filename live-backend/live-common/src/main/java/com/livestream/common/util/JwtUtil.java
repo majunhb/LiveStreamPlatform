@@ -6,6 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -16,10 +18,7 @@ import java.util.Map;
 @Slf4j
 public class JwtUtil {
 
-    /** 秘钥（实际使用时从配置读取） */
-    private static final String SECRET = "livestream-platform-secret-key-must-be-at-least-256-bits-long";
-    
-    /** 过期时间（毫秒）- 默认7天 */
+    /** 默认过期时间（毫秒）- 7天 */
     private static final long EXPIRATION = 7 * 24 * 60 * 60 * 1000L;
     
     /** Token前缀 */
@@ -28,23 +27,46 @@ public class JwtUtil {
     /** Header键 */
     private static final String HEADER_KEY = "Authorization";
 
-    /**
-     * 生成Token
-     */
-    public static String generateToken(Long userId, String username) {
-        return generateToken(userId, username, EXPIRATION);
+    /** 从环境变量/系统属性读取的JWT密钥 */
+    private static final String SECRET;
+
+    static {
+        // 优先从环境变量读取，其次从系统属性读取，最后生成随机密钥并告警
+        String secret = System.getenv("JWT_SECRET");
+        if (secret == null || secret.isBlank()) {
+            secret = System.getProperty("jwt.secret");
+        }
+        if (secret == null || secret.isBlank()) {
+            // 开发环境回退：生成一个安全的随机密钥并打印警告
+            log.warn("未配置JWT_SECRET环境变量或jwt.secret系统属性，正在生成随机密钥。生产环境请务必配置安全的JWT密钥！");
+            byte[] randomKey = new byte[64]; // 512 bits
+            new SecureRandom().nextBytes(randomKey);
+            secret = Base64.getEncoder().encodeToString(randomKey);
+        }
+        SECRET = secret;
+        log.info("JWT密钥已加载（来源: {}）",
+                System.getenv("JWT_SECRET") != null ? "环境变量JWT_SECRET" :
+                System.getProperty("jwt.secret") != null ? "系统属性jwt.secret" : "随机生成");
     }
 
     /**
-     * 生成Token（自定义过期时间）
+     * 生成Token（包含角色信息）
      */
-    public static String generateToken(Long userId, String username, long expiration) {
+    public static String generateToken(Long userId, String username, String role) {
+        return generateToken(userId, username, role, EXPIRATION);
+    }
+
+    /**
+     * 生成Token（自定义过期时间，包含角色信息）
+     */
+    public static String generateToken(Long userId, String username, String role, long expiration) {
         Date now = new Date();
         Date expirationDate = new Date(now.getTime() + expiration);
         
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
         claims.put("username", username);
+        claims.put("role", role != null ? role : "USER");
         
         SecretKey key = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
         
@@ -55,6 +77,20 @@ public class JwtUtil {
                 .expiration(expirationDate)
                 .signWith(key)
                 .compact();
+    }
+
+    /**
+     * 兼容旧接口（无角色参数，默认角色为USER）
+     */
+    public static String generateToken(Long userId, String username) {
+        return generateToken(userId, username, "USER", EXPIRATION);
+    }
+
+    /**
+     * 兼容旧接口（无角色参数，自定义过期时间）
+     */
+    public static String generateToken(Long userId, String username, long expiration) {
+        return generateToken(userId, username, "USER", expiration);
     }
 
     /**
@@ -103,6 +139,14 @@ public class JwtUtil {
     public static String getUsername(String token) {
         Claims claims = parseToken(token);
         return claims.getSubject();
+    }
+
+    /**
+     * 从Token中获取用户角色
+     */
+    public static String getRole(String token) {
+        Claims claims = parseToken(token);
+        return claims.get("role", String.class);
     }
 
     /**

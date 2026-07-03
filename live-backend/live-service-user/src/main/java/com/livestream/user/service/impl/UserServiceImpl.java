@@ -14,6 +14,7 @@ import com.livestream.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -30,6 +31,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     private final RedisTemplate<String, Object> redisTemplate;
 
+    /** BCrypt密码编码器 */
+    private static final BCryptPasswordEncoder PASSWORD_ENCODER = new BCryptPasswordEncoder();
+
     @Override
     public String register(String username, String password, String phone) {
         // 检查用户名是否已存在
@@ -40,11 +44,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 创建用户
         User user = new User();
         user.setUsername(username);
-        user.setPassword(password); // 实际需要加密
+        // 使用BCrypt加密存储密码
+        user.setPassword(PASSWORD_ENCODER.encode(password));
         user.setPhone(phone);
         user.setNickname(username);
         user.setStatus(0);
         user.setUserType(1);
+        // 默认角色为普通用户
+        user.setRole("USER");
         user.setCoinBalance(0L);
         
         boolean saved = save(user);
@@ -53,7 +60,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         
         log.info("用户注册成功: username={}", username);
-        return JwtUtil.generateToken(user.getId(), user.getUsername());
+        return JwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole());
     }
 
     @Override
@@ -67,8 +74,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(ResultCode.USER_DISABLED);
         }
         
-        // 验证密码（实际需要加密比对）
-        if (!password.equals(user.getPassword())) {
+        // 使用BCrypt验证密码
+        if (!PASSWORD_ENCODER.matches(password, user.getPassword())) {
             throw new BusinessException(ResultCode.USERNAME_OR_PASSWORD_ERROR);
         }
         
@@ -77,7 +84,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         updateById(user);
         
         log.info("用户登录成功: username={}", username);
-        return JwtUtil.generateToken(user.getId(), user.getUsername());
+        return JwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole());
     }
 
     @Override
