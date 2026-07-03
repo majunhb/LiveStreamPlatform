@@ -1,4 +1,4 @@
-import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios'
+import axios, { type AxiosInstance, type AxiosResponse } from 'axios'
 import { ElMessage } from 'element-plus'
 import { getToken, clearAuth } from '@/utils/auth'
 import router from '@/router'

@@ -1,4 +1,4 @@
-import { get, post, put, del } from '@/utils/request'
+import { get, post, del } from '@/utils/request'
 
 export function getVideoList(params: any) {
   return get('/admin/videos', params)
