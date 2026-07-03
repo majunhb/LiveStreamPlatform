@@ -114,11 +114,13 @@
                 <groupId>io.jsonwebtoken</groupId>
                 <artifactId>jjwt-impl</artifactId>
                 <version>${jwt.version}</version>
+                <scope>runtime</scope>
             </dependency>
             <dependency>
                 <groupId>io.jsonwebtoken</groupId>
                 <artifactId>jjwt-jackson</artifactId>
                 <version>${jwt.version}</version>
+                <scope>runtime</scope>
             </dependency>
 
             <!-- Lombok -->
@@ -135,7 +137,7 @@
                 <version>${hutool.version}</version>
             </dependency>
 
-            <!-- 本地模块依赖 -->
+            <!-- 公共模块 -->
             <dependency>
                 <groupId>com.livestream</groupId>
                 <artifactId>live-common</artifactId>
@@ -166,6 +168,13 @@
                     <configuration>
                         <source>17</source>
                         <target>17</target>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
                     </configuration>
                 </plugin>
             </plugins>
