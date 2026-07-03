@@ -53,7 +53,7 @@ public class DateUtil {
         if (dateStr == null) {
             return null;
         }
-        return DateUtil.parseDate(dateStr, pattern);
+        return DateUtil.parse(dateStr, pattern);
     }
 
     /**
