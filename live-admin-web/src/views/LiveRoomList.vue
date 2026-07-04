@@ -57,16 +57,23 @@
 import { ref, reactive, onMounted } from 'vue'
 import { getLiveRoomList, forceStopLive } from '@/api/live'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import type { LiveRoomInfo } from '@/types'
+
+interface LiveRoomRow extends LiveRoomInfo {
+  anchorName?: string
+  likeCount?: number
+  giftAmount?: number
+}
 
 const loading = ref(false)
-const list = ref<any[]>([])
+const list = ref<LiveRoomRow[]>([])
 const total = ref(0)
 const query = reactive({ keyword: '', status: undefined as number | undefined, page: 1, size: 20 })
 
 async function loadData() {
   loading.value = true
   try {
-    const res: any = await getLiveRoomList(query)
+    const res = await getLiveRoomList(query as unknown as Record<string, unknown>)
     list.value = res.data?.records || []
     total.value = res.data?.total || 0
   } catch { /* ignore */ } finally {
@@ -74,7 +81,7 @@ async function loadData() {
   }
 }
 
-async function handleForceStop(row: any) {
+async function handleForceStop(row: LiveRoomRow) {
   const { value: reason } = await ElMessageBox.prompt('请输入强制下播原因', '强制下播', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
@@ -86,7 +93,7 @@ async function handleForceStop(row: any) {
   loadData()
 }
 
-function handleView(row: any) {
+function handleView(row: LiveRoomRow) {
   ElMessage.info(`查看直播间 ${row.title} 详情（功能开发中）`)
 }
 

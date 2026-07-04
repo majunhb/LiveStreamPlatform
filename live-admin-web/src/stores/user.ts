@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { getToken, setToken, getUserInfo, setUserInfo, clearAuth } from '@/utils/auth'
+import { getToken, setToken, getUserInfo, setUserInfo, clearAuth, type AdminUser } from '@/utils/auth'
 import { post, get } from '@/utils/request'
+import type { LoginResult, AdminInfoResult } from '@/types'
 
 export const useUserStore = defineStore('user', () => {
   const token = ref<string | null>(null)
-  const userInfo = ref<any>(null)
+  const userInfo = ref<AdminUser | null>(null)
   const roles = ref<string[]>([])
 
   function init() {
@@ -14,7 +15,7 @@ export const useUserStore = defineStore('user', () => {
   }
 
   async function login(username: string, password: string) {
-    const res: any = await post('/admin/auth/login', { username, password })
+    const res = await post<LoginResult>('/admin/auth/login', { username, password })
     const data = res.data
     token.value = data.token
     setToken(data.token)
@@ -25,7 +26,7 @@ export const useUserStore = defineStore('user', () => {
   }
 
   async function getInfo() {
-    const res: any = await get('/admin/auth/info')
+    const res = await get<AdminInfoResult>('/admin/auth/info')
     const data = res.data
     userInfo.value = data.admin
     setUserInfo(data.admin)

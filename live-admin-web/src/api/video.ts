@@ -1,11 +1,12 @@
 import { get, post, del } from '@/utils/request'
+import type { VideoInfo, PageParams, PageResult } from '@/types'
 
-export function getVideoList(params: any) {
-  return get('/admin/videos', params)
+export function getVideoList(params: PageParams) {
+  return get<PageResult<VideoInfo>>('/admin/videos', params as Record<string, unknown>)
 }
 
 export function getVideoDetail(id: number) {
-  return get(`/admin/videos/${id}`)
+  return get<VideoInfo>(`/admin/videos/${id}`)
 }
 
 export function reviewVideo(id: number, status: number, reason?: string) {

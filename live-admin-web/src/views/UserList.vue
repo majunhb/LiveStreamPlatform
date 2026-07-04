@@ -63,16 +63,24 @@
 import { ref, reactive, onMounted } from 'vue'
 import { getUserList, banUser, unbanUser } from '@/api/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import type { UserInfo } from '@/types'
+
+interface UserRow extends UserInfo {
+  gender?: number
+  balance?: number
+  followCount?: number
+  fansCount?: number
+}
 
 const loading = ref(false)
-const list = ref<any[]>([])
+const list = ref<UserRow[]>([])
 const total = ref(0)
 const query = reactive({ keyword: '', status: undefined as number | undefined, page: 1, size: 20 })
 
 async function loadData() {
   loading.value = true
   try {
-    const res: any = await getUserList(query)
+    const res = await getUserList(query as unknown as Record<string, unknown>)
     list.value = res.data?.records || []
     total.value = res.data?.total || 0
   } catch { /* ignore */ } finally {
@@ -80,20 +88,20 @@ async function loadData() {
   }
 }
 
-async function handleBan(row: any) {
+async function handleBan(row: UserRow) {
   await ElMessageBox.confirm(`确定封禁用户「${row.nickname}」？`, '封禁确认', { type: 'warning' })
   await banUser(row.id, '管理员操作')
   ElMessage.success('封禁成功')
   loadData()
 }
 
-async function handleUnban(row: any) {
+async function handleUnban(row: UserRow) {
   await unbanUser(row.id)
   ElMessage.success('解封成功')
   loadData()
 }
 
-function handleDetail(row: any) {
+function handleDetail(row: UserRow) {
   ElMessage.info(`查看用户 ${row.nickname} 详情（功能开发中）`)
 }
 

@@ -5,25 +5,17 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.livestream.gift.entity.Wallet;
 import com.livestream.gift.mapper.WalletMapper;
 import com.livestream.gift.service.WalletService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.concurrent.TimeUnit;
-
 /**
  * 钱包服务实现类
+ * 使用数据库原子操作替代 Redis 分布式锁，避免并发扣款导致的余额不一致问题
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> implements WalletService {
-
-    private final RedisTemplate<String, Object> redisTemplate;
-    private static final String WALLET_LOCK_KEY = "wallet:lock:";
-    private static final long LOCK_TIMEOUT = 5;
 
     @Override
     public Wallet getUserWallet(Long userId) {
@@ -55,42 +47,40 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean recharge(Long userId, Long coin) {
-        Wallet wallet = getUserWallet(userId);
-        wallet.setCoinBalance(wallet.getCoinBalance() + coin);
-        wallet.setTotalRechargeCoin(wallet.getTotalRechargeCoin() + coin);
-        return updateById(wallet);
+        // 确保钱包存在（首次充值时自动创建）
+        getUserWallet(userId);
+        int rows = baseMapper.rechargeBalance(userId, coin);
+        if (rows > 0) {
+            log.info("充值成功: userId={}, coin={}", userId, coin);
+        }
+        return rows > 0;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean deduct(Long userId, Long coin) {
-        String lockKey = WALLET_LOCK_KEY + userId;
-        Boolean locked = redisTemplate.opsForValue().setIfAbsent(lockKey, "1", LOCK_TIMEOUT, TimeUnit.SECONDS);
-        if (!Boolean.TRUE.equals(locked)) {
-            throw new RuntimeException("系统繁忙，请稍后重试");
+        // 确保钱包存在
+        getUserWallet(userId);
+        // 原子扣款：SQL层面保证 balance >= amount 才扣减，无需 Redis 锁
+        int rows = baseMapper.deductBalance(userId, coin);
+        if (rows > 0) {
+            log.info("扣款成功: userId={}, coin={}", userId, coin);
+        } else {
+            log.warn("扣款失败(余额不足): userId={}, coin={}", userId, coin);
         }
-        
-        try {
-            Wallet wallet = getUserWallet(userId);
-            if (wallet.getCoinBalance() < coin) {
-                throw new RuntimeException("金币不足");
-            }
-            
-            wallet.setCoinBalance(wallet.getCoinBalance() - coin);
-            wallet.setTotalConsumeCoin(wallet.getTotalConsumeCoin() + coin);
-            return updateById(wallet);
-        } finally {
-            redisTemplate.delete(lockKey);
-        }
+        return rows > 0;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean addIncome(Long userId, Long coin) {
-        Wallet wallet = getUserWallet(userId);
-        wallet.setCoinBalance(wallet.getCoinBalance() + coin);
-        wallet.setTotalIncomeCoin(wallet.getTotalIncomeCoin() + coin);
-        return updateById(wallet);
+        // 确保钱包存在
+        getUserWallet(userId);
+        int rows = baseMapper.addIncomeBalance(userId, coin);
+        if (rows > 0) {
+            log.info("收入入账成功: userId={}, coin={}", userId, coin);
+        }
+        return rows > 0;
     }
 
     @Override

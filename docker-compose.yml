@@ -1,6 +1,6 @@
 # ============================================================
 # 直播平台基础设施 - Docker Compose 配置文件
-# 包含 MySQL、Redis、MongoDB、Nacos、Zookeeper、Kafka、MinIO、SRS 等服务
+# 包含 MySQL、Redis、MongoDB、Nacos、Zookeeper、Kafka、MinIO、SRS 及业务服务
 # 使用方法: docker-compose up -d
 # ============================================================
 
@@ -209,6 +209,7 @@ services:
 
   # ============================================================
   # SRS 5 流媒体服务器（RTMP/HTTP-FLV/WebRTC）
+  # 注意: HTTP-FLV 映射到 8088 避免与 gateway(8080) 冲突
   # ============================================================
   srs:
     image: ossrs/srs:5
@@ -216,9 +217,9 @@ services:
     restart: always
     ports:
       - "1935:1935"   # RTMP 推流端口
-      - "8080:8080"   # HTTP-FLV 拉流端口
+      - "8088:8080"   # HTTP-FLV 拉流端口（映射到容器内8080，宿主8088避免冲突）
       - "1985:1985"   # HTTP API 端口
-      - "8000:8000"   # WebRTC 端口
+      - "8000:8000/udp" # WebRTC 端口
       - "500:500/udp" # WebRTC DTLS
     volumes:
       - ./docker/srs/srs.conf:/usr/local/srs/conf/srs.conf:ro
@@ -232,6 +233,178 @@ services:
       timeout: 10s
       retries: 3
       start_period: 20s
+
+  # ============================================================
+  # 业务微服务
+  # ============================================================
+
+  # API 网关
+  gateway:
+    build:
+      context: ./live-backend
+      dockerfile: live-gateway/Dockerfile
+    container_name: livestream-gateway
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      NACOS_SERVER_ADDR: nacos:8848
+      REDIS_HOST: redis
+      KAFKA_SERVERS: kafka:9092
+    depends_on:
+      nacos:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - livestream-net
+
+  # 用户服务
+  service-user:
+    build:
+      context: ./live-backend
+      dockerfile: live-service-user/Dockerfile
+    container_name: livestream-service-user
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      DB_HOST: mysql
+      REDIS_HOST: redis
+      NACOS_SERVER_ADDR: nacos:8848
+      KAFKA_SERVERS: kafka:9092
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    networks:
+      - livestream-net
+
+  # 直播服务
+  service-live:
+    build:
+      context: ./live-backend
+      dockerfile: live-service-live/Dockerfile
+    container_name: livestream-service-live
+    restart: always
+    ports:
+      - "8082:8082"
+    environment:
+      DB_HOST: mysql
+      REDIS_HOST: redis
+      NACOS_SERVER_ADDR: nacos:8848
+      KAFKA_SERVERS: kafka:9092
+      MINIO_ENDPOINT: http://minio:9000
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    networks:
+      - livestream-net
+
+  # 视频服务
+  service-video:
+    build:
+      context: ./live-backend
+      dockerfile: live-service-video/Dockerfile
+    container_name: livestream-service-video
+    restart: always
+    ports:
+      - "8083:8083"
+    environment:
+      DB_HOST: mysql
+      REDIS_HOST: redis
+      NACOS_SERVER_ADDR: nacos:8848
+      KAFKA_SERVERS: kafka:9092
+      MINIO_ENDPOINT: http://minio:9000
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    networks:
+      - livestream-net
+
+  # 消息/弹幕服务
+  service-message:
+    build:
+      context: ./live-backend
+      dockerfile: live-service-message/Dockerfile
+    container_name: livestream-service-message
+    restart: always
+    ports:
+      - "8084:8084"
+    environment:
+      REDIS_HOST: redis
+      MONGO_HOST: mongo
+      NACOS_SERVER_ADDR: nacos:8848
+      KAFKA_SERVERS: kafka:9092
+    depends_on:
+      mongo:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    networks:
+      - livestream-net
+
+  # 礼物/支付服务
+  service-gift:
+    build:
+      context: ./live-backend
+      dockerfile: live-service-gift/Dockerfile
+    container_name: livestream-service-gift
+    restart: always
+    ports:
+      - "8085:8085"
+    environment:
+      DB_HOST: mysql
+      REDIS_HOST: redis
+      NACOS_SERVER_ADDR: nacos:8848
+      KAFKA_SERVERS: kafka:9092
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    networks:
+      - livestream-net
+
+  # 运营管理服务
+  service-admin:
+    build:
+      context: ./live-backend
+      dockerfile: live-service-admin/Dockerfile
+    container_name: livestream-service-admin
+    restart: always
+    ports:
+      - "8086:8086"
+    environment:
+      DB_HOST: mysql
+      REDIS_HOST: redis
+      NACOS_SERVER_ADDR: nacos:8848
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    networks:
+      - livestream-net
+
+  # 前端管理后台
+  admin-web:
+    build:
+      context: ./live-admin-web
+      dockerfile: Dockerfile
+    container_name: livestream-admin-web
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - gateway
+    networks:
+      - livestream-net
 
 # ============================================================
 # 数据卷声明（持久化存储）

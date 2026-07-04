@@ -82,10 +82,19 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { get, post } from '@/utils/request'
+import type { PageResult, AdminInfo } from '@/types'
 import { ElMessage } from 'element-plus'
 
+interface AdminRow extends AdminInfo {
+  realName?: string
+  roleId?: number
+  roleName?: string
+  lastLoginTime?: string
+  status: number
+}
+
 const loading = ref(false)
-const list = ref<any[]>([])
+const list = ref<AdminRow[]>([])
 const total = ref(0)
 const showDialog = ref(false)
 const editId = ref<number | null>(null)
@@ -96,7 +105,7 @@ const adminForm = reactive({ username: '', password: '', realName: '', roleId: 2
 async function loadData() {
   loading.value = true
   try {
-    const res: any = await get('/admin/admins', query)
+    const res = await get<PageResult<AdminRow>>('/admin/admins', query as unknown as Record<string, unknown>)
     list.value = res.data?.records || []
     total.value = res.data?.total || 0
   } catch { /* ignore */ } finally {
@@ -104,7 +113,7 @@ async function loadData() {
   }
 }
 
-function handleEdit(row: any) {
+function handleEdit(row: AdminRow) {
   editId.value = row.id
   Object.assign(adminForm, { username: row.username, realName: row.realName, roleId: row.roleId })
   showDialog.value = true
@@ -112,10 +121,10 @@ function handleEdit(row: any) {
 
 async function handleSave() {
   if (editId.value) {
-    await post(`/admin/admins/${editId.value}/update`, adminForm)
+    await post(`/admin/admins/${editId.value}/update`, adminForm as unknown as Record<string, unknown>)
     ElMessage.success('更新成功')
   } else {
-    await post('/admin/admins/create', adminForm)
+    await post('/admin/admins/create', adminForm as unknown as Record<string, unknown>)
     ElMessage.success('创建成功')
   }
   showDialog.value = false
@@ -123,12 +132,12 @@ async function handleSave() {
   loadData()
 }
 
-async function handleResetPwd(row: any) {
+async function handleResetPwd(row: AdminRow) {
   await post(`/admin/admins/${row.id}/reset-password`)
   ElMessage.success('密码已重置为默认密码')
 }
 
-async function handleToggleStatus(row: any) {
+async function handleToggleStatus(row: AdminRow) {
   await post(`/admin/admins/${row.id}/toggle-status`)
   ElMessage.success('状态已更新')
   loadData()

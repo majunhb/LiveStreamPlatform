@@ -70,16 +70,25 @@
 import { ref, reactive, onMounted } from 'vue'
 import { getWithdrawList, approveWithdraw, rejectWithdraw } from '@/api/gift'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import type { WithdrawInfo } from '@/types'
+
+interface WithdrawRow extends WithdrawInfo {
+  userName?: string
+  fee?: number
+  actualAmount?: number
+  accountType?: string
+  accountInfo?: string
+}
 
 const loading = ref(false)
-const list = ref<any[]>([])
+const list = ref<WithdrawRow[]>([])
 const total = ref(0)
 const query = reactive({ keyword: '', status: undefined as number | undefined, page: 1, size: 20 })
 
 async function loadData() {
   loading.value = true
   try {
-    const res: any = await getWithdrawList(query)
+    const res = await getWithdrawList(query as unknown as Record<string, unknown>)
     list.value = res.data?.records || []
     total.value = res.data?.total || 0
   } catch { /* ignore */ } finally {
@@ -87,14 +96,14 @@ async function loadData() {
   }
 }
 
-async function handleApprove(row: any) {
+async function handleApprove(row: WithdrawRow) {
   await ElMessageBox.confirm(`确认通过用户「${row.userName}」的 ¥${row.amount} 提现申请？`, '审批确认')
   await approveWithdraw(row.id)
   ElMessage.success('审批通过')
   loadData()
 }
 
-async function handleReject(row: any) {
+async function handleReject(row: WithdrawRow) {
   const { value: reason } = await ElMessageBox.prompt('请输入拒绝原因', '拒绝提现', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',

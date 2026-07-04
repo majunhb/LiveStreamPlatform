@@ -1,11 +1,12 @@
 import { get, post, put } from '@/utils/request'
+import type { UserInfo, PageParams, PageResult } from '@/types'
 
-export function getUserList(params: any) {
-  return get('/admin/users', params)
+export function getUserList(params: PageParams) {
+  return get<PageResult<UserInfo>>('/admin/users', params as Record<string, unknown>)
 }
 
 export function getUserDetail(id: number) {
-  return get(`/admin/users/${id}`)
+  return get<UserInfo>(`/admin/users/${id}`)
 }
 
 export function updateUserStatus(id: number, status: number) {

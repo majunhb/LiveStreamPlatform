@@ -1,7 +1,14 @@
-import axios, { type AxiosInstance, type AxiosResponse } from 'axios'
+import axios, { type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
 import { ElMessage } from 'element-plus'
 import { getToken, clearAuth } from '@/utils/auth'
 import router from '@/router'
+
+/** 通用API响应结构 */
+export interface ApiResponse<T = unknown> {
+  code: number
+  data: T
+  message: string
+}
 
 const service: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL + '/api',
@@ -10,21 +17,21 @@ const service: AxiosInstance = axios.create({
 
 // 请求拦截器
 service.interceptors.request.use(
-  (config) => {
+  (config: InternalAxiosRequestConfig) => {
     const token = getToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
     return config
   },
-  (error) => {
+  (error: unknown) => {
     return Promise.reject(error)
   }
 )
 
 // 响应拦截器
 service.interceptors.response.use(
-  (response: AxiosResponse) => {
+  (response: AxiosResponse<ApiResponse>) => {
     const res = response.data
     if (res.code !== 200 && res.code !== 0) {
       ElMessage.error(res.message || '请求失败')
@@ -37,7 +44,7 @@ service.interceptors.response.use(
     }
     return res
   },
-  (error) => {
+  (error: { response?: { status: number }; message?: string }) => {
     const status = error.response?.status
     if (status === 401) {
       clearAuth()
@@ -57,18 +64,18 @@ service.interceptors.response.use(
 export default service
 
 // 便捷方法
-export function get<T = any>(url: string, params?: any): Promise<T> {
-  return service.get(url, { params }) as any
+export function get<T = unknown>(url: string, params?: Record<string, unknown>): Promise<ApiResponse<T>> {
+  return service.get(url, { params }) as Promise<ApiResponse<T>>
 }
 
-export function post<T = any>(url: string, data?: any): Promise<T> {
-  return service.post(url, data) as any
+export function post<T = unknown>(url: string, data?: Record<string, unknown>): Promise<ApiResponse<T>> {
+  return service.post(url, data) as Promise<ApiResponse<T>>
 }
 
-export function put<T = any>(url: string, data?: any): Promise<T> {
-  return service.put(url, data) as any
+export function put<T = unknown>(url: string, data?: Record<string, unknown>): Promise<ApiResponse<T>> {
+  return service.put(url, data) as Promise<ApiResponse<T>>
 }
 
-export function del<T = any>(url: string, params?: any): Promise<T> {
-  return service.delete(url, { params }) as any
+export function del<T = unknown>(url: string, params?: Record<string, unknown>): Promise<ApiResponse<T>> {
+  return service.delete(url, { params }) as Promise<ApiResponse<T>>
 }

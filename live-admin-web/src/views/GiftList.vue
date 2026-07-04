@@ -87,9 +87,14 @@
 import { ref, reactive, onMounted } from 'vue'
 import { getGiftList, createGift, updateGift, deleteGift } from '@/api/gift'
 import { ElMessage } from 'element-plus'
+import type { GiftInfo } from '@/types'
+
+interface GiftRow extends GiftInfo {
+  totalSent?: number
+}
 
 const loading = ref(false)
-const list = ref<any[]>([])
+const list = ref<GiftRow[]>([])
 const total = ref(0)
 const showCreateDialog = ref(false)
 const editId = ref<number | null>(null)
@@ -100,7 +105,7 @@ const giftForm = reactive({ name: '', price: 1, icon: '', sort: 0, status: 1 })
 async function loadData() {
   loading.value = true
   try {
-    const res: any = await getGiftList(query)
+    const res = await getGiftList(query as unknown as Record<string, unknown>)
     list.value = res.data?.records || []
     total.value = res.data?.total || 0
   } catch { /* ignore */ } finally {
@@ -108,7 +113,7 @@ async function loadData() {
   }
 }
 
-function handleEdit(row: any) {
+function handleEdit(row: GiftRow) {
   editId.value = row.id
   Object.assign(giftForm, { name: row.name, price: row.price, icon: row.icon, sort: row.sort, status: row.status })
   showCreateDialog.value = true
@@ -127,13 +132,13 @@ async function handleSave() {
   loadData()
 }
 
-async function handleToggleStatus(row: any) {
+async function handleToggleStatus(row: GiftRow) {
   await updateGift(row.id, { status: row.status === 1 ? 0 : 1 })
   ElMessage.success('状态更新成功')
   loadData()
 }
 
-async function handleDelete(row: any) {
+async function handleDelete(row: GiftRow) {
   await deleteGift(row.id)
   ElMessage.success('删除成功')
   loadData()

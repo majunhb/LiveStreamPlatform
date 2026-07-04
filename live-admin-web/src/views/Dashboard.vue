@@ -97,7 +97,14 @@
 import { ref, onMounted } from 'vue'
 import { get } from '@/utils/request'
 
-const stats = ref<any>({})
+interface DashboardStats {
+  totalUsers?: number
+  activeLives?: number
+  todayIncome?: number
+  pendingReview?: number
+}
+
+const stats = ref<DashboardStats>({})
 const notices = ref([
   { time: '2026-07-02 10:30', content: '系统初始化完成，所有服务运行正常', operator: '系统' },
   { time: '2026-07-02 09:00', content: 'SRS流媒体服务器已启动', operator: '系统' },
@@ -106,7 +113,7 @@ const notices = ref([
 
 onMounted(async () => {
   try {
-    const res: any = await get('/admin/dashboard/stats')
+    const res = await get<DashboardStats>('/admin/dashboard/stats')
     stats.value = res.data || {}
   } catch {
     // 使用默认空数据

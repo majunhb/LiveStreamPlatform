@@ -59,24 +59,31 @@
 import { ref, reactive, onMounted } from 'vue'
 import { getVideoList, reviewVideo, recommendVideo } from '@/api/video'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import type { VideoInfo } from '@/types'
+
+interface VideoRow extends VideoInfo {
+  authorName?: string
+  duration?: number
+  playCount?: number
+}
 
 const loading = ref(false)
-const list = ref<any[]>([])
+const list = ref<VideoRow[]>([])
 const total = ref(0)
 const query = reactive({ keyword: '', status: undefined as number | undefined, page: 1, size: 20 })
 
-function statusText(status: number) {
+function statusText(status: number): string {
   return ['待审核', '已通过', '已拒绝'][status] || '未知'
 }
 
-function statusType(status: number) {
+function statusType(status: number): string {
   return ['warning', 'success', 'danger'][status] || 'info'
 }
 
 async function loadData() {
   loading.value = true
   try {
-    const res: any = await getVideoList(query)
+    const res = await getVideoList(query as unknown as Record<string, unknown>)
     list.value = res.data?.records || []
     total.value = res.data?.total || 0
   } catch { /* ignore */ } finally {
@@ -84,13 +91,13 @@ async function loadData() {
   }
 }
 
-async function handleReview(row: any, status: number) {
+async function handleReview(row: VideoRow, status: number) {
   await reviewVideo(row.id, status)
   ElMessage.success('审核通过')
   loadData()
 }
 
-async function handleReject(row: any) {
+async function handleReject(row: VideoRow) {
   const { value: reason } = await ElMessageBox.prompt('请输入拒绝原因', '拒绝审核', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
@@ -102,12 +109,12 @@ async function handleReject(row: any) {
   loadData()
 }
 
-async function handleRecommend(row: any) {
+async function handleRecommend(row: VideoRow) {
   await recommendVideo(row.id)
   ElMessage.success('已设为推荐')
 }
 
-function handleView(row: any) {
+function handleView(row: VideoRow) {
   ElMessage.info(`查看视频 ${row.title}（功能开发中）`)
 }
 
