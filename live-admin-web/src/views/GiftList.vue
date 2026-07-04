@@ -105,7 +105,7 @@ const giftForm = reactive({ name: '', price: 1, icon: '', sort: 0, status: 1 })
 async function loadData() {
   loading.value = true
   try {
-    const res = await getGiftList(query as unknown as Record<string, unknown>)
+    const res = await getGiftList(query as any)
     list.value = res.data?.records || []
     total.value = res.data?.total || 0
   } catch { /* ignore */ } finally {

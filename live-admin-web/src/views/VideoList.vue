@@ -83,7 +83,7 @@ function statusType(status: number): string {
 async function loadData() {
   loading.value = true
   try {
-    const res = await getVideoList(query as unknown as Record<string, unknown>)
+    const res = await getVideoList(query as any)
     list.value = res.data?.records || []
     total.value = res.data?.total || 0
   } catch { /* ignore */ } finally {

@@ -80,7 +80,7 @@ const query = reactive({ keyword: '', status: undefined as number | undefined, p
 async function loadData() {
   loading.value = true
   try {
-    const res = await getUserList(query as unknown as Record<string, unknown>)
+    const res = await getUserList(query as any)
     list.value = res.data?.records || []
     total.value = res.data?.total || 0
   } catch { /* ignore */ } finally {

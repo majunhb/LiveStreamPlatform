@@ -31,7 +31,7 @@ service.interceptors.request.use(
 
 // 响应拦截器
 service.interceptors.response.use(
-  (response: AxiosResponse<ApiResponse>) => {
+  (response: AxiosResponse) => {
     const res = response.data
     if (res.code !== 200 && res.code !== 0) {
       ElMessage.error(res.message || '请求失败')
@@ -42,7 +42,7 @@ service.interceptors.response.use(
       }
       return Promise.reject(new Error(res.message || '请求失败'))
     }
-    return res
+    return res as any
   },
   (error: { response?: { status: number }; message?: string }) => {
     const status = error.response?.status
