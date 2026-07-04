@@ -1,14 +1,13 @@
 package com.livestream.common.util;
 
 import cn.hutool.core.lang.Snowflake;
-import cn.hutool.core.util.IdUtil;
 
 /**
  * ID生成工具类
  */
 public class IdUtil {
 
-    private static final Snowflake SNOWFLAKE = IdUtil.getSnowflake(1, 1);
+    private static final Snowflake SNOWFLAKE = new Snowflake(1, 1);
 
     /**
      * 生成雪花ID
@@ -28,13 +27,13 @@ public class IdUtil {
      * 生成UUID（去横线）
      */
     public static String uuid() {
-        return IdUtil.fastSimpleUUID();
+        return cn.hutool.core.util.IdUtil.fastSimpleUUID();
     }
 
     /**
      * 生成带横线的UUID
      */
     public static String uuidWithHyphen() {
-        return IdUtil.simpleUUID();
+        return cn.hutool.core.util.IdUtil.simpleUUID();
     }
 }

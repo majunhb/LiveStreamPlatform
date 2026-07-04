@@ -1,7 +1,5 @@
 package com.livestream.common.util;
 
-import cn.hutool.core.date.DateUtil;
-
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -36,7 +34,8 @@ public class DateUtil {
         if (date == null) {
             return null;
         }
-        return DateUtil.format(date, pattern);
+        SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+        return sdf.format(date);
     }
 
     /**
@@ -53,7 +52,12 @@ public class DateUtil {
         if (dateStr == null) {
             return null;
         }
-        return DateUtil.parse(dateStr, pattern);
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+            return sdf.parse(dateStr);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /**
