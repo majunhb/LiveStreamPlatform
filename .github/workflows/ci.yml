@@ -86,3 +86,212 @@ jobs:
         npm ci
         npm run lint -- --max-warnings 0
       continue-on-error: true
+
+  # ============================================================
+  # 用户端 Web 构建
+  # ============================================================
+  user-web-build:
+    name: User Web Build
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: live-user-web/package-lock.json
+    
+    - name: Install dependencies
+      run: |
+        cd live-user-web
+        npm ci
+    
+    - name: Build
+      run: |
+        cd live-user-web
+        npm run build
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: user-web-dist
+        path: live-user-web/dist/
+        retention-days: 7
+
+  # ============================================================
+  # 用户端 APP 构建（uni-app 三平台）
+  # ============================================================
+  user-app-build:
+    name: User App Build
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        platform: [h5, app, mp-weixin]
+      fail-fast: false
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: live-user-app/package-lock.json
+    
+    - name: Install dependencies
+      run: |
+        cd live-user-app
+        npm ci
+    
+    - name: Build ${{ matrix.platform }}
+      run: |
+        cd live-user-app
+        npm run build:${{ matrix.platform }}
+    
+    - name: Upload H5 产物
+      if: matrix.platform == 'h5'
+      uses: actions/upload-artifact@v4
+      with:
+        name: user-app-h5
+        path: live-user-app/dist/build/h5/
+        retention-days: 7
+    
+    - name: Upload App 资源产物
+      if: matrix.platform == 'app'
+      uses: actions/upload-artifact@v4
+      with:
+        name: user-app-resources
+        path: live-user-app/dist/build/app/
+        retention-days: 7
+    
+    - name: Upload 微信小程序产物
+      if: matrix.platform == 'mp-weixin'
+      uses: actions/upload-artifact@v4
+      with:
+        name: user-app-mp-weixin
+        path: live-user-app/dist/build/mp-weixin/
+        retention-days: 7
+
+  # ============================================================
+  # APK 云打包项目包（可直接导入 HBuilderX 云打包）
+  # ============================================================
+  apk-cloud-package:
+    name: APK Cloud Package
+    needs: user-app-build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[apk]')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: live-user-app/package-lock.json
+    
+    - name: Install dependencies
+      run: |
+        cd live-user-app
+        npm ci
+    
+    - name: 构建 App 资源
+      run: |
+        cd live-user-app
+        npm run build:app
+    
+    - name: 生成云打包项目目录
+      run: |
+        cd live-user-app
+        OUTPUT_DIR="dist/apk-package"
+        SRC_DIR="src"
+        
+        rm -rf "$OUTPUT_DIR"
+        mkdir -p "$OUTPUT_DIR"
+        
+        cp "$SRC_DIR/manifest.json" "$OUTPUT_DIR/manifest.json"
+        cp "$SRC_DIR/pages.json" "$OUTPUT_DIR/pages.json"
+        cp "$SRC_DIR/App.vue" "$OUTPUT_DIR/App.vue"
+        cp "$SRC_DIR/main.ts" "$OUTPUT_DIR/main.ts"
+        cp "$SRC_DIR/uni.scss" "$OUTPUT_DIR/uni.scss"
+        
+        cp -r "$SRC_DIR/pages" "$OUTPUT_DIR/pages"
+        cp -r "$SRC_DIR/components" "$OUTPUT_DIR/components"
+        cp -r "$SRC_DIR/api" "$OUTPUT_DIR/api"
+        cp -r "$SRC_DIR/store" "$OUTPUT_DIR/store"
+        cp -r "$SRC_DIR/utils" "$OUTPUT_DIR/utils"
+        cp -r "$SRC_DIR/mock" "$OUTPUT_DIR/mock"
+        
+        mkdir -p "$OUTPUT_DIR/static"
+        cp -r "$SRC_DIR/static/icon" "$OUTPUT_DIR/static/"
+        cp -r "$SRC_DIR/static/splash" "$OUTPUT_DIR/static/"
+        
+        cat > "$OUTPUT_DIR/package.json" << 'PKGEOF'
+        {
+          "name": "live-planet",
+          "version": "1.0.0",
+          "description": "LIVE星球 - 精彩直播平台",
+          "main": "main.ts"
+        }
+        PKGEOF
+        
+        cat > "$OUTPUT_DIR/打包说明.txt" << 'DOCEOF'
+        ============================================================
+          LIVE星球 Android APK 云打包说明
+        ============================================================
+        
+        【快速开始】HBuilderX 云打包
+        ------------------------------------------------------------
+        1. 下载安装 HBuilderX：https://www.dcloud.io/hbuilderx.html
+        2. 文件 → 导入 → 从本地目录导入 → 选择本目录
+        3. 右键项目 → 发行 → 原生App-云打包
+        4. 配置：
+           - Android 包名：com.livestream.planet
+           - 证书：使用 DCloud 公用证书（测试）
+           - 架构：arm64-v8a（推荐）
+        5. 点击"打包"，等待 3-5 分钟
+        6. 下载 APK 安装包
+        
+        【应用信息】
+        ------------------------------------------------------------
+        - 应用名称：LIVE星球
+        - Android包名：com.livestream.planet
+        - AppID：__UNI__LIVEPLANET
+        - 版本号：1.0.0 (100)
+        - 支持架构：arm64-v8a, armeabi-v7a
+        - 最低系统：Android 5.0 (API 21)
+        
+        【证书生成（正式发布用）】
+        ------------------------------------------------------------
+        keytool -genkey -alias liveplanet -keyalg RSA -keysize 2048 \
+          -validity 36500 -keystore liveplanet.keystore
+        
+        【技术支持】
+        ------------------------------------------------------------
+        - DCloud 官方文档：https://uniapp.dcloud.net.cn/
+        - HBuilderX 下载：https://www.dcloud.io/hbuilderx.html
+        DOCEOF
+        
+        echo "云打包项目已生成: $OUTPUT_DIR"
+    
+    - name: 打包为 ZIP
+      run: |
+        cd live-user-app/dist
+        zip -r apk-package.zip apk-package
+        echo "ZIP 包大小: $(du -h apk-package.zip | cut -f1)"
+    
+    - name: Upload APK 云打包项目
+      uses: actions/upload-artifact@v4
+      with:
+        name: apk-cloud-package
+        path: live-user-app/dist/apk-package.zip
+        retention-days: 30

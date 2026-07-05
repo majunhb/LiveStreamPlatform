@@ -1,0 +1,143 @@
+{
+  "name": "LIVE星球",
+  "appid": "__UNI__LIVEPLANET",
+  "description": "精彩直播平台",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "LIVE星球",
+    "router": {
+      "mode": "hash",
+      "base": "./"
+    },
+    "sdkConfigs": {},
+    "devServer": {
+      "port": 5173,
+      "https": false
+    }
+  },
+  "mp-weixin": {
+    "appid": "wx0000000000000000",
+    "setting": {
+      "urlCheck": false,
+      "es6": true,
+      "minified": true,
+      "postcss": true
+    },
+    "usingComponents": true
+  },
+  "app-plus": {
+    "name": "LIVE星球",
+    "versionName": "1.0.0",
+    "versionCode": "100",
+    "usingComponents": true,
+    "nvueStyleCompiler": "uni-app",
+    "compilerVersion": 3,
+    "splashscreen": {
+      "alwaysShowBeforeRender": true,
+      "waiting": true,
+      "autoclose": true,
+      "delay": 0,
+      "android": {
+        "splashStyle": "fullscreen"
+      },
+      "ios": {
+        "splashStyle": "fullscreen"
+      }
+    },
+    "modules": {},
+    "distribute": {
+      "android": {
+        "permissions": [
+          "<uses-permission android:name=\"android.permission.INTERNET\"/>",
+          "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>",
+          "<uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\"/>",
+          "<uses-permission android:name=\"android.permission.CAMERA\"/>",
+          "<uses-permission android:name=\"android.permission.RECORD_AUDIO\"/>",
+          "<uses-permission android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\"/>",
+          "<uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\"/>",
+          "<uses-permission android:name=\"android.permission.READ_PHONE_STATE\"/>",
+          "<uses-permission android:name=\"android.permission.VIBRATE\"/>",
+          "<uses-permission android:name=\"android.permission.FLASHLIGHT\"/>",
+          "<uses-permission android:name=\"android.permission.WAKE_LOCK\"/>",
+          "<uses-permission android:name=\"android.permission.MODIFY_AUDIO_SETTINGS\"/>",
+          "<uses-permission android:name=\"android.permission.RECEIVE_BOOT_COMPLETED\"/>",
+          "<uses-permission android:name=\"android.permission.REQUEST_INSTALL_PACKAGES\"/>",
+          "<uses-permission android:name=\"android.permission.SYSTEM_ALERT_WINDOW\"/>",
+          "<uses-feature android:name=\"android.hardware.camera\" android:required=\"false\"/>",
+          "<uses-feature android:name=\"android.hardware.camera.autofocus\" android:required=\"false\"/>",
+          "<uses-feature android:name=\"android.hardware.microphone\" android:required=\"false\"/>"
+        ],
+        "minSdkVersion": 21,
+        "targetSdkVersion": 30,
+        "abiFilters": ["armeabi-v7a", "arm64-v8a"],
+        "screenOrientation": "portrait"
+      },
+      "ios": {
+        "idfa": false,
+        "dSYMs": false,
+        "privacyDescription": {
+          "NSCameraUsageDescription": "需要访问您的相机用于直播和拍摄",
+          "NSMicrophoneUsageDescription": "需要访问您的麦克风用于直播和语音互动",
+          "NSPhotoLibraryUsageDescription": "需要访问您的相册用于上传头像和视频",
+          "NSPhotoLibraryAddUsageDescription": "需要保存图片到您的相册",
+          "NSLocationWhenInUseUsageDescription": "需要获取您的位置信息用于附近的直播推荐",
+          "NSLocationAlwaysAndWhenInUseUsageDescription": "需要获取您的位置信息用于附近的直播推荐"
+        },
+        "urlSchemes": [],
+        "bundleId": "com.liveplanet.app",
+        "screenOrientation": ["portrait-primary"],
+        "supportedDeviceTypes": ["iphone", "ipad"]
+      },
+      "sdkConfigs": {},
+      "icons": {
+        "android": {
+          "hdpi": "static/icon/72x72.png",
+          "xhdpi": "static/icon/96x96.png",
+          "xxhdpi": "static/icon/144x144.png",
+          "xxxhdpi": "static/icon/192x192.png"
+        },
+        "ios": {
+          "appstore": "static/icon/1024x1024.png",
+          "iphone": {
+            "20x20": ["static/icon/40x40.png", "static/icon/60x60.png"],
+            "29x29": ["static/icon/58x58.png", "static/icon/87x87.png"],
+            "40x40": ["static/icon/80x80.png", "static/icon/120x120.png"],
+            "60x60": ["static/icon/120x120.png", "static/icon/180x180.png"]
+          }
+        }
+      },
+      "splashscreen": {
+        "android": {
+          "stretch": "static/splash/splash-bg.png",
+          "loadingWidth": "100%",
+          "loadingHeight": "100%",
+          "aspectRatio": "16:9"
+        },
+        "ios": {
+          "stretch": "static/splash/splash-bg.png",
+          "loadingWidth": "100%",
+          "loadingHeight": "100%",
+          "aspectRatio": "16:9",
+          "iphone": {
+            "20x20": "",
+            "29x29": "",
+            "40x40": "",
+            "60x60": ""
+          }
+        }
+      }
+    },
+    "softinput": {
+      "mode": "adjustResize"
+    },
+    "statusbar": {
+      "immersed": true,
+      "style": "light",
+      "background": "#0a0a0f"
+    },
+    "popGesture": "close",
+    "backgroundColor": "#0a0a0f"
+  }
+}
