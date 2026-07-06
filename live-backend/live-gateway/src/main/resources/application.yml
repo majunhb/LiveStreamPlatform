@@ -32,15 +32,15 @@ spring:
           lower-case-service-id: true
       # CORS配置已移至 CorsConfig.java，通过环境变量 CORS_ALLOWED_ORIGINS 控制允许域名
 
-# 暴露端点
+# 暴露端点（S-07安全修复：仅暴露health端点，show-details需授权）
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,gateway
+        include: health
   endpoint:
     health:
-      show-details: always
+      show-details: when-authorized
 
 # 日志配置
 logging:

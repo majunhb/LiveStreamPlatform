@@ -95,6 +95,6 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public R<Void> handleException(Exception e) {
         log.error("系统异常", e);
-        return R.fail(ResultCode.INTERNAL_SERVER_ERROR.getCode(), "系统异常: " + e.getMessage());
+        return R.fail(ResultCode.INTERNAL_SERVER_ERROR.getCode(), "系统繁忙，请稍后重试");
     }
 }

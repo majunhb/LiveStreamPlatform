@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * 推荐Feed服务实现类
@@ -67,11 +68,13 @@ public class FeedServiceImpl implements FeedService {
 
     @Override
     public PageResult<ShortVideo> searchVideos(String keyword, PageRequest request) {
+        // C-09安全修复：使用Pattern.quote()转义正则特殊字符，防止ReDoS攻击
+        String escapedKeyword = Pattern.quote(keyword);
         Query query = new Query(
                 new Criteria().orOperator(
-                        Criteria.where("title").regex(keyword),
-                        Criteria.where("description").regex(keyword),
-                        Criteria.where("tags").regex(keyword)
+                        Criteria.where("title").regex(escapedKeyword),
+                        Criteria.where("description").regex(escapedKeyword),
+                        Criteria.where("tags").regex(escapedKeyword)
                 ).and("status").is(1).and("audit_status").is(1)
         );
         query.with(Sort.by(Sort.Direction.DESC, "create_time"));

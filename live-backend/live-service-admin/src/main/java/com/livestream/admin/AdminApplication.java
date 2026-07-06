@@ -10,7 +10,7 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
  */
 @EnableDiscoveryClient
 @MapperScan("com.livestream.admin.mapper")
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "com.livestream")
 public class AdminApplication {
 
     public static void main(String[] args) {

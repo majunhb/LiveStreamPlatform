@@ -6,6 +6,8 @@ import com.livestream.common.result.R;
 import com.livestream.common.util.JwtUtil;
 import com.livestream.user.entity.User;
 import com.livestream.user.service.UserService;
+import com.livestream.user.vo.UserVO;
+import org.springframework.beans.BeanUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,13 +49,10 @@ public class UserController {
      * 获取当前用户信息
      */
     @GetMapping("/info")
-    public R<User> getCurrentUserInfo(HttpServletRequest request) {
+    public R<UserVO> getCurrentUserInfo(HttpServletRequest request) {
         Long userId = Long.valueOf(request.getHeader("X-User-Id"));
         User user = userService.getById(userId);
-        if (user != null) {
-            user.setPassword(null); // 不返回密码
-        }
-        return R.success(user);
+        return R.success(convertToVO(user));
     }
 
     /**
@@ -71,20 +70,35 @@ public class UserController {
      * 根据ID获取用户信息
      */
     @GetMapping("/{id}")
-    public R<User> getUserById(@PathVariable Long id) {
+    public R<UserVO> getUserById(@PathVariable Long id) {
         User user = userService.getById(id);
-        if (user != null) {
-            user.setPassword(null);
-        }
-        return R.success(user);
+        return R.success(convertToVO(user));
     }
 
     /**
      * 分页查询用户列表
      */
     @GetMapping("/page")
-    public R<PageResult<User>> pageQuery(PageRequest request) {
-        return R.success(userService.pageQuery(request));
+    public R<PageResult<UserVO>> pageQuery(PageRequest request) {
+        PageResult<User> pageResult = userService.pageQuery(request);
+        return R.success(PageResult.of(
+                pageResult.getRecords().stream().map(this::convertToVO).toList(),
+                pageResult.getTotal(),
+                pageResult.getPageNum(),
+                pageResult.getPageSize()
+        ));
+    }
+
+    /**
+     * User实体转UserVO（S-10安全修复：脱敏敏感字段）
+     */
+    private UserVO convertToVO(User user) {
+        if (user == null) {
+            return null;
+        }
+        UserVO vo = new UserVO();
+        BeanUtils.copyProperties(user, vo);
+        return vo;
     }
 
     /**
