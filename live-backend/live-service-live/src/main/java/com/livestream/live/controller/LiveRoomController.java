@@ -60,7 +60,7 @@ public class LiveRoomController {
     public R<Void> endLive(@RequestParam Long roomId, HttpServletRequest request) {
         Long userId = Long.valueOf(request.getHeader("X-User-Id"));
         liveRoomService.endLive(roomId, userId);
-        return R.success("结束直播");
+        return R.success();
     }
 
     /**
