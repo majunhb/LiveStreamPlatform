@@ -43,6 +43,6 @@ public class WalletController {
     public R<Void> recharge(@RequestParam Long coin, HttpServletRequest request) {
         Long userId = Long.valueOf(request.getHeader("X-User-Id"));
         walletService.recharge(userId, coin);
-        return R.success("充值成功");
+        return R.success();
     }
 }
