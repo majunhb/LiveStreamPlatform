@@ -81,13 +81,6 @@
                 <version>${mysql.version}</version>
             </dependency>
 
-            <!-- Kafka -->
-            <dependency>
-                <groupId>org.springframework.kafka</groupId>
-                <artifactId>spring-kafka</artifactId>
-                <version>${kafka.version}</version>
-            </dependency>
-
             <!-- MinIO -->
             <dependency>
                 <groupId>io.minio</groupId>
