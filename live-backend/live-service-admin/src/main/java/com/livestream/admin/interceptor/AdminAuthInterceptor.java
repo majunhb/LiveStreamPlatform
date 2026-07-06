@@ -22,7 +22,7 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
             log.warn("非管理员用户尝试访问管理后台接口: path={}, role={}", request.getRequestURI(), role);
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             response.setContentType("application/json;charset=UTF-8");
-            response.getWriter().write("{"code":403,"message":"无权限访问管理后台"}");
+            response.getWriter().write("无权限访问管理后台");
             return false;
         }
         
