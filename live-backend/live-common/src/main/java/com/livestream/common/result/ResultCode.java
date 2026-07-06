@@ -7,7 +7,6 @@ import lombok.Getter;
  * 响应状态码枚举
  */
 @Getter
-@AllArgsConstructor
 public enum ResultCode {
     // 成功
     SUCCESS(200, "操作成功"),

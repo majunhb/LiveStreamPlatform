@@ -1,6 +1,8 @@
 package com.livestream.message.service.impl;
 
 import com.livestream.common.exception.BusinessException;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
 import com.livestream.common.result.ResultCode;
 import com.livestream.common.util.IdUtil;
 import com.livestream.message.entity.Danmaku;
@@ -49,6 +51,16 @@ public class DanmakuServiceImpl implements DanmakuService {
         if (count != null && count > 5) {
             throw new BusinessException(ResultCode.DANMAKU_FREQUENT);
         }
+        
+        // C-07安全修复：XSS过滤，使用Jsoup清除所有HTML标签
+        String cleanContent = Jsoup.clean(danmaku.getContent(), Safelist.none());
+        if (cleanContent == null || cleanContent.isBlank()) {
+            throw new BusinessException("弹幕内容不能为空");
+        }
+        if (cleanContent.length() > 200) {
+            throw new BusinessException("弹幕内容过长，最多200字");
+        }
+        danmaku.setContent(cleanContent);
         
         // 保存弹幕
         danmaku.setId(IdUtil.uuid());

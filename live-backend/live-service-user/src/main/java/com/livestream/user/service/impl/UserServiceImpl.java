@@ -113,6 +113,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.orderByDesc(User::getCreateTime);
+        // password字段已标注@TableField(select=false)，查询时自动排除
         
         Page<User> result = page(page, queryWrapper);
         

@@ -56,13 +56,11 @@ public class GiftServiceImpl extends ServiceImpl<GiftMapper, Gift> implements Gi
         // 计算总价
         long totalCoin = gift.getPrice() * quantity;
         
-        // 检查发送者余额
-        if (!walletService.checkBalance(senderId, totalCoin)) {
+        // S-01安全修复：使用原子扣款替代 checkBalance + deduct 的TOCTOU竞态条件
+        // deduct内部使用原子SQL（WHERE coin_balance >= amount），返回false即余额不足
+        if (!walletService.deduct(senderId, totalCoin)) {
             throw new BusinessException(ResultCode.COIN_INSUFFICIENT);
         }
-        
-        // 扣除发送者金币
-        walletService.deduct(senderId, totalCoin);
         
         // 增加接收者（主播）金币收入
         walletService.addIncome(receiverId, totalCoin);

@@ -130,9 +130,9 @@ public class AuthFilter implements GlobalFilter, Ordered {
 
     /**
      * 从请求头提取Token
+     * 安全修复(C-04)：移除URL查询参数提取Token的逻辑，仅支持Authorization头，防止Token通过URL泄露到日志/Referer/浏览器历史
      */
     private String extractToken(ServerHttpRequest request) {
-        // 优先从Authorization头获取
         String authHeader = request.getHeaders().getFirst(JwtUtil.getHeaderKey());
         if (StringUtils.hasText(authHeader)) {
             if (authHeader.startsWith(JwtUtil.getTokenPrefix())) {
@@ -140,13 +140,6 @@ public class AuthFilter implements GlobalFilter, Ordered {
             }
             return authHeader;
         }
-        
-        // 其次从请求参数获取
-        String token = request.getQueryParams().getFirst("token");
-        if (StringUtils.hasText(token)) {
-            return token;
-        }
-        
         return null;
     }
 

@@ -1,6 +1,7 @@
 package com.livestream.user.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -22,15 +23,19 @@ public class User implements Serializable {
     private String username;
     
     /** 密码（加密存储） */
+    @JsonIgnore
+    @TableField(select = false)
     private String password;
     
     /** 昵称 */
     private String nickname;
     
     /** 手机号 */
+    @JsonIgnore
     private String phone;
     
     /** 邮箱 */
+    @JsonIgnore
     private String email;
     
     /** 头像URL */
@@ -58,6 +63,7 @@ public class User implements Serializable {
     private LocalDateTime lastLoginTime;
     
     /** 最后登录IP */
+    @JsonIgnore
     private String lastLoginIp;
     
     /** 创建时间 */

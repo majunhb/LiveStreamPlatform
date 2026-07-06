@@ -5,9 +5,16 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.livestream.gift.entity.Wallet;
 import com.livestream.gift.mapper.WalletMapper;
 import com.livestream.gift.service.WalletService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Collections;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 钱包服务实现类
@@ -15,7 +22,20 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> implements WalletService {
+
+    private final RedisTemplate<String, Object> redisTemplate;
+
+    /** S-02安全修复：Lua脚本用于安全的Redis锁释放（CAS模式：比对value后再删除） */
+    private static final DefaultRedisScript<Long> UNLOCK_SCRIPT;
+    static {
+        UNLOCK_SCRIPT = new DefaultRedisScript<>();
+        UNLOCK_SCRIPT.setScriptText(
+            "if redis.call('get',KEYS[1])==ARGV[1] then return redis.call('del',KEYS[1]) else return 0 end"
+        );
+        UNLOCK_SCRIPT.setResultType(Long.class);
+    }
 
     @Override
     public Wallet getUserWallet(Long userId) {
@@ -61,14 +81,27 @@ public class WalletServiceImpl extends ServiceImpl<WalletMapper, Wallet> impleme
     public boolean deduct(Long userId, Long coin) {
         // 确保钱包存在
         getUserWallet(userId);
-        // 原子扣款：SQL层面保证 balance >= amount 才扣减，无需 Redis 锁
-        int rows = baseMapper.deductBalance(userId, coin);
-        if (rows > 0) {
-            log.info("扣款成功: userId={}, coin={}", userId, coin);
-        } else {
-            log.warn("扣款失败(余额不足): userId={}, coin={}", userId, coin);
+        // S-02安全修复：使用UUID作为锁值 + Lua脚本比对后释放（CAS模式），防止误删其他线程的锁
+        String lockKey = "wallet:lock:" + userId;
+        String lockValue = UUID.randomUUID().toString();
+        Boolean locked = redisTemplate.opsForValue().setIfAbsent(lockKey, lockValue, 10, TimeUnit.SECONDS);
+        if (!Boolean.TRUE.equals(locked)) {
+            log.warn("获取钱包锁失败: userId={}", userId);
+            throw new RuntimeException("系统繁忙，请稍后重试");
         }
-        return rows > 0;
+        try {
+            // S-01安全修复：原子扣款SQL（WHERE coin_balance >= amount），消除TOCTOU竞态条件
+            int rows = baseMapper.deductBalance(userId, coin);
+            if (rows > 0) {
+                log.info("扣款成功: userId={}, coin={}", userId, coin);
+            } else {
+                log.warn("扣款失败(余额不足): userId={}, coin={}", userId, coin);
+            }
+            return rows > 0;
+        } finally {
+            // 使用Lua脚本安全释放锁：仅当lockValue匹配时才删除，避免误删其他线程持有的锁
+            redisTemplate.execute(UNLOCK_SCRIPT, Collections.singletonList(lockKey), lockValue);
+        }
     }
 
     @Override
