@@ -10,7 +10,6 @@ import com.livestream.video.service.VideoService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest as SpringPageRequest;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -88,7 +87,7 @@ public class VideoServiceImpl implements VideoService {
     @Override
     public PageResult<ShortVideo> getUserVideos(Long userId, PageRequest request) {
         Query query = new Query(Criteria.where("user_id").is(userId).and("status").is(1));
-        query.with(SpringPageRequest.of(request.getPageNum() - 1, request.getPageSize()));
+        query.with(org.springframework.data.domain.PageRequest.of(request.getPageNum() - 1, request.getPageSize()));
         query.fields().exclude("description");
         
         List<ShortVideo> videos = mongoTemplate.find(query, ShortVideo.class);

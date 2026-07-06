@@ -7,7 +7,6 @@ import com.livestream.video.service.FeedService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest as SpringPageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -32,7 +31,7 @@ public class FeedServiceImpl implements FeedService {
     public PageResult<ShortVideo> getRecommendFeed(PageRequest request) {
         Query query = new Query(Criteria.where("status").is(1).and("audit_status").is(1));
         query.with(Sort.by(Sort.Direction.DESC, "like_count", "play_count", "create_time"));
-        query.with(SpringPageRequest.of(request.getPageNum() - 1, request.getPageSize()));
+        query.with(org.springframework.data.domain.PageRequest.of(request.getPageNum() - 1, request.getPageSize()));
         query.fields().exclude("description");
         
         List<ShortVideo> videos = mongoTemplate.find(query, ShortVideo.class);
@@ -46,7 +45,7 @@ public class FeedServiceImpl implements FeedService {
         // 实际需要查询关注列表，这里简化处理
         Query query = new Query(Criteria.where("user_id").in(new ArrayList<Long>()).and("status").is(1));
         query.with(Sort.by(Sort.Direction.DESC, "create_time"));
-        query.with(SpringPageRequest.of(request.getPageNum() - 1, request.getPageSize()));
+        query.with(org.springframework.data.domain.PageRequest.of(request.getPageNum() - 1, request.getPageSize()));
         
         List<ShortVideo> videos = mongoTemplate.find(query, ShortVideo.class);
         long total = mongoTemplate.count(Query.of(query).limit(-1).skip(-1), ShortVideo.class);
@@ -58,7 +57,7 @@ public class FeedServiceImpl implements FeedService {
     public PageResult<ShortVideo> getHotVideos(PageRequest request) {
         Query query = new Query(Criteria.where("status").is(1).and("audit_status").is(1));
         query.with(Sort.by(Sort.Direction.DESC, "play_count"));
-        query.with(SpringPageRequest.of(request.getPageNum() - 1, request.getPageSize()));
+        query.with(org.springframework.data.domain.PageRequest.of(request.getPageNum() - 1, request.getPageSize()));
         
         List<ShortVideo> videos = mongoTemplate.find(query, ShortVideo.class);
         long total = mongoTemplate.count(Query.of(query).limit(-1).skip(-1), ShortVideo.class);
@@ -78,7 +77,7 @@ public class FeedServiceImpl implements FeedService {
                 ).and("status").is(1).and("audit_status").is(1)
         );
         query.with(Sort.by(Sort.Direction.DESC, "create_time"));
-        query.with(SpringPageRequest.of(request.getPageNum() - 1, request.getPageSize()));
+        query.with(org.springframework.data.domain.PageRequest.of(request.getPageNum() - 1, request.getPageSize()));
         
         List<ShortVideo> videos = mongoTemplate.find(query, ShortVideo.class);
         long total = mongoTemplate.count(Query.of(query).limit(-1).skip(-1), ShortVideo.class);
@@ -91,7 +90,7 @@ public class FeedServiceImpl implements FeedService {
         Query query = new Query(Criteria.where("category_id").is(categoryId)
                 .and("status").is(1).and("audit_status").is(1));
         query.with(Sort.by(Sort.Direction.DESC, "create_time"));
-        query.with(SpringPageRequest.of(request.getPageNum() - 1, request.getPageSize()));
+        query.with(org.springframework.data.domain.PageRequest.of(request.getPageNum() - 1, request.getPageSize()));
         query.fields().exclude("description");
         
         return mongoTemplate.find(query, ShortVideo.class);
